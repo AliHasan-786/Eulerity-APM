@@ -1,140 +1,190 @@
-# HyperLocal Agentic Ad Studio
+# Franchise Campaign Activation Studio
 
-Dependency-light Python prototype for the PRD you provided. It now includes a browser-based portfolio demo so recruiters and hiring managers can interact with the multi-agent workflow directly.
+An AI agent pipeline that takes a single national brand brief and produces market-specific ad copy for every franchise location in the network — localized by zip code, scored against brand guidelines, and automatically rewritten if it doesn't pass.
 
-It implements the core Eulerity flow:
+**[Live demo →](https://eulerity-apm.vercel.app)**
 
-- `Localizer` gathers zip-level context through Serper when `SERPER_API_KEY` is present, otherwise it falls back to deterministic mock context for demo reliability.
-- `Copywriter` fuses the national ad objective with local context, using an OpenAI-compatible chat endpoint when credentials are configured and a deterministic template mode otherwise.
-- `Critic` scores each draft across five categories and routes failed drafts back for rewrite until they pass or exhaust the retry budget.
-- `SupervisorWorkflow` runs the loop internally today and can switch to a real LangGraph graph by setting `HYPERLOCAL_WORKFLOW_RUNTIME=langgraph` after installing the optional dependency.
-- Every run writes a JSON trace file to `artifacts/traces/` for auditability.
-- `webapp.py` serves a local browser experience with live runtime badges, OKR scorecards, localized variant cards, and click-to-open traces.
+---
 
-## Repo Layout
+## The Problem
 
-- `src/hyperlocal_ad_studio/workflow.py`: Supervisor, retry loop, optional LangGraph adapter.
-- `src/hyperlocal_ad_studio/service.py`: Batch orchestration, concurrency control, timeout handling.
-- `src/hyperlocal_ad_studio/webapp.py`: Local HTTP server for browser testing.
-- `src/hyperlocal_ad_studio/web/`: Portfolio UI assets.
-- `src/hyperlocal_ad_studio/local_context.py`: Serper-backed localizer plus deterministic demo fallback.
-- `src/hyperlocal_ad_studio/llm.py`: Copywriter and OpenAI-compatible LLM gateway.
-- `src/hyperlocal_ad_studio/critic.py`: LLM or heuristic brand-safety evaluator.
-- `src/hyperlocal_ad_studio/api.py`: Optional FastAPI surface for `/generate-variants`.
-- `src/hyperlocal_ad_studio/cli.py`: Zero-dependency CLI entrypoint.
+Enterprise franchise brands face a structural tension in advertising. A national campaign brief needs to reach hundreds or thousands of locations, but each market is different — demographics, competitive density, and consumer behavior vary dramatically between South Beach and suburban Leander, TX. Generic copy underperforms. Manual localization at scale is prohibitively expensive and slow.
 
-## Browser Demo
+The other side of the problem is brand compliance. When franchise owners write their own ads, quality and legal consistency break down. When a central team reviews each one, it becomes a bottleneck. The question is whether an automated system can write copy that's both locally resonant and brand-compliant — without a human in the loop for either step.
 
-Run the local portfolio app:
+This pipeline explores that question. It's built around the same core loop that powers modern AI marketing automation: gather local market signals, generate location-specific copy, evaluate it against brand guardrails, and iterate until it passes.
 
-```bash
-PYTHONPATH=src python3 -m hyperlocal_ad_studio.webapp --host 127.0.0.1 --port 8000
+---
+
+## How It Works
+
+```
+National Brief + Zip Codes
+         │
+         ▼
+┌─────────────────┐
+│   Localizer     │  Resolves each zip code to market tier, demographics,
+│                 │  and competitive context via Serper (or curated fallback)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│   Copywriter    │  Fuses the national brief with local context using an
+│                 │  OpenAI-compatible LLM (or deterministic template mode)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│     Critic      │  Scores copy across 5 brand dimensions. Failed drafts
+│                 │  are routed back to the Copywriter — up to 2 retry cycles.
+└────────┬────────┘
+         │
+    passed / failed
+         │
+         ▼
+  AdVariant output
+  (with full trace)
 ```
 
-Then open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
+Each location runs through the loop independently and in parallel. The `SupervisorWorkflow` manages the retry budget and writes a structured JSON trace per variant for auditability. Everything runs with zero external dependencies by default — the LLM and context APIs are optional layers on top of a working fallback.
 
-The page exposes:
+---
 
-- Live status badges for LLM mode, local context mode, workflow runtime, and retry budget.
-- A form that takes one national ad objective and multiple zip codes.
-- Batch summary cards and an OKR board tied to the PRD's throughput, quality, and reliability goals.
-- Clickable trace modals that show the localizer, copywriter, and critic steps for each generated variant.
+## Scoring Dimensions
 
-## What I Need From You For Live AI
+The Critic evaluates each draft on five dimensions, each scored 1–5:
 
-If you want recruiters to see the real LLM path instead of the deterministic fallback, add these values to `.env` in the repo root:
+| Dimension | What it checks |
+|---|---|
+| `brand_safety` | No placeholders, brackets, or prohibited terms |
+| `local_relevance` | Copy references the specific market, demographics, and competitive context |
+| `tone_alignment` | Language matches the brand's stated voice and register |
+| `core_message_retention` | The national offer is clearly preserved |
+| `cta_strength` | A clear, actionable call to action is present |
 
-```bash
-HYPERLOCAL_LLM_PROVIDER=openrouter
-HYPERLOCAL_CRITIC_MODE=auto
-OPENROUTER_API_KEY=your_key_here
-OPENAI_BASE_URL=https://openrouter.ai/api/v1
-OPENAI_MODEL=openai/gpt-4.1-mini
+A draft passes when every dimension scores ≥ 4. Anything below triggers a rewrite with the critic's feedback passed back to the copywriter.
+
+---
+
+## Project Structure
+
+```
+src/hyperlocal_ad_studio/
+├── workflow.py        # SupervisorWorkflow — retry loop + optional LangGraph adapter
+├── service.py         # Batch orchestration, concurrency control, timeout handling
+├── local_context.py   # Localizer: Serper API + curated fallback for 17 US markets
+├── llm.py             # Copywriter: LLM gateway + template fallback
+├── critic.py          # Critic: LLM judge + heuristic brand-safety evaluator
+├── models.py          # LocalContext, DraftCopy, Critique, AdVariant, BatchResult
+├── tracing.py         # Per-variant JSON trace recorder
+├── config.py          # Settings loaded from environment / .env
+├── webapp.py          # stdlib HTTP server for local development
+├── api.py             # Optional FastAPI surface
+└── web/               # Frontend: index.html, styles.css, app.js
+
+api/
+└── index.py           # Vercel serverless entry point (FastAPI)
+
+tests/
+└── test_workflow.py   # Workflow retry logic + batch generation tests
 ```
 
-If the OpenRouter key has no paid credits, use the zero-cost router instead:
+---
+
+## Running Locally
+
+No installation required for the core pipeline:
 
 ```bash
-OPENAI_MODEL=openrouter/free
+git clone https://github.com/AliHasan-786/Eulerity-APM.git
+cd Eulerity-APM
+PYTHONPATH=src python3 -m hyperlocal_ad_studio.webapp --port 8000
 ```
 
-The free router is slower, so raise the per-variant timeout for a smoother demo:
+Open [http://localhost:8000](http://localhost:8000). The app runs in template mode by default — no API keys needed. Add keys (see below) to enable live LLM copy generation and real market intelligence.
 
-```bash
-HYPERLOCAL_VARIANT_TIMEOUT_SECONDS=25
-```
-
-In `auto` mode, the app uses live LLM copywriting and switches the critic to the deterministic brand gate when `OPENAI_MODEL=openrouter/free`. If you move back to a paid model, the LLM judge is used again automatically.
-
-For the free route, keep parallelism low to avoid hosted rate limits during recruiter demos:
-
-```bash
-HYPERLOCAL_MAX_PARALLELISM=1
-```
-
-For live hyper-local context instead of seeded mock context:
-
-```bash
-SERPER_API_KEY=your_key_here
-```
-
-Optional:
-
-- `OPENAI_API_KEY` if you want to use the default OpenAI endpoint instead of OpenRouter.
-- `OPENAI_BASE_URL` if you want to point at a different OpenAI-compatible endpoint.
-- `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and `LANGFUSE_HOST` if you want to extend the prototype with hosted observability next.
-
-## CLI
-
-You can still run it without the browser:
-
-Use the CLI without installing any dependencies:
+**CLI (no browser):**
 
 ```bash
 PYTHONPATH=src python3 -m hyperlocal_ad_studio.cli \
-  --prompt "Promote our new iced latte" \
-  --zip 10001 \
-  --zip 94103 \
-  --zip 60611
+  --prompt "Drive enrollment for our unlimited membership program" \
+  --zip 10001 --zip 94103 --zip 33139
 ```
 
-Or use the bundled request example:
+---
+
+## Configuration
+
+Copy `.env.example` to `.env` and set the values you want:
 
 ```bash
-PYTHONPATH=src python3 -m hyperlocal_ad_studio.cli --request-file examples/sample_request.json
+cp .env.example .env
 ```
 
-## Optional Packages
+| Variable | Effect |
+|---|---|
+| `OPENROUTER_API_KEY` | Enables live LLM copy generation via OpenRouter |
+| `OPENAI_API_KEY` | Alternative: use the standard OpenAI endpoint |
+| `OPENAI_BASE_URL` | Override the API base URL (default: OpenAI or OpenRouter) |
+| `OPENAI_MODEL` | Model to use (default: `openai/gpt-4.1-mini`) |
+| `SERPER_API_KEY` | Enables live local market intelligence per zip code |
+| `HYPERLOCAL_CRITIC_MODE` | `auto` (default), `llm`, or `heuristic` |
+| `HYPERLOCAL_MAX_REWRITES` | Max retry cycles per variant (default: `2`) |
+| `HYPERLOCAL_MAX_PARALLELISM` | Concurrent variants (default: `8`, lower for free-tier models) |
+| `HYPERLOCAL_VARIANT_TIMEOUT_SECONDS` | Per-variant timeout (default: `12`) |
+| `HYPERLOCAL_WORKFLOW_RUNTIME` | `internal` (default) or `langgraph` |
 
-If you want the real LangGraph runtime or an HTTP API, install the optional groups:
+**Free-tier OpenRouter note:** Set `OPENAI_MODEL=openrouter/free` and `HYPERLOCAL_MAX_PARALLELISM=1` to stay within rate limits. The critic automatically falls back to heuristic mode on the free model.
+
+---
+
+## Deployment
+
+The app deploys to Vercel with no additional configuration. `vercel.json` routes all traffic through `api/index.py`, which serves both the API endpoints and the static frontend.
 
 ```bash
-python3 -m pip install -e '.[dev,api,langgraph,integrations]'
+# Install Vercel CLI if needed
+npm i -g vercel
+
+vercel deploy
 ```
 
-Then start the API with:
+Set `OPENROUTER_API_KEY` and `SERPER_API_KEY` as environment variables in the Vercel dashboard to enable the live AI path.
+
+---
+
+## Optional Extensions
+
+**LangGraph runtime:**
 
 ```bash
-PYTHONPATH=src python3 -c "from hyperlocal_ad_studio.api import create_app; app = create_app(); print(app)"
+pip install -e '.[langgraph]'
+HYPERLOCAL_WORKFLOW_RUNTIME=langgraph python3 -m hyperlocal_ad_studio.webapp
 ```
 
-Use `uvicorn` if installed:
+Swaps the internal retry loop for a LangGraph state graph. The interface and output shape are identical — the runtime is the only difference.
+
+**Langfuse observability:**
 
 ```bash
+pip install -e '.[integrations]'
+```
+
+Set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and `LANGFUSE_HOST`. Trace events are already structured for Langfuse ingestion — the integration hooks in cleanly on top of the existing trace recorder.
+
+**FastAPI surface:**
+
+```bash
+pip install -e '.[api]'
 uvicorn hyperlocal_ad_studio.api:create_app --factory --reload
 ```
 
-## Environment
+Exposes a `POST /generate-variants` endpoint with the same request/response shape as the web UI.
 
-Copy `.env.example` into your preferred env loader and set:
+---
 
-- `SERPER_API_KEY` to enable live local context lookups.
-- `OPENROUTER_API_KEY` plus `OPENAI_BASE_URL` / `OPENAI_MODEL`, or `OPENAI_API_KEY`, to enable live LLM drafting and judging.
-- `HYPERLOCAL_WORKFLOW_RUNTIME=langgraph` to activate the graph workflow once `langgraph` is installed.
-- `HYPERLOCAL_VARIANT_TIMEOUT_SECONDS` and `HYPERLOCAL_MAX_PARALLELISM` to tune batch throughput.
+## Tests
 
-## Notes
-
-- The trace files are the primary observability surface in this prototype. They are structured so Langfuse ingestion can be layered in cleanly once credentials and SDK dependencies are added.
-- The mock mode is deliberate. It keeps the demo stable in environments without API keys while preserving the same orchestration path and output shape.
-- For recruiter demos, the best path is to provide `OPENAI_API_KEY` and `SERPER_API_KEY`, restart the local server, and then use the runtime badges in the UI to prove the app is operating live.
+```bash
+PYTHONPATH=src pytest tests/ -v
+```
