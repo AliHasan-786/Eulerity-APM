@@ -105,19 +105,20 @@ class LLMGateway:
             with request.urlopen(req, timeout=self._settings.llm_request_timeout_seconds) as response:
                 return json.loads(response.read().decode("utf-8"))
         except error.HTTPError as exc:
+            _free_fallback = "google/gemini-2.0-flash-exp:free"
             if (
                 exc.code == 402
                 and "openrouter.ai" in self._settings.openai_base_url
-                and model != "openrouter/free"
+                and model != _free_fallback
             ):
                 return self._request_completion(
                     headers=headers,
-                    model="openrouter/free",
+                    model=_free_fallback,
                     system_prompt=system_prompt,
                     user_prompt=user_prompt,
                     temperature=temperature,
                 )
-            is_free_model = model == "openrouter/free" or model.endswith(":free")
+            is_free_model = model.endswith(":free")
             if exc.code == 429 and attempt < 3 and not is_free_model:
                 retry_after = exc.headers.get("Retry-After") if exc.headers else None
                 wait_seconds = float(retry_after) if retry_after and retry_after.isdigit() else float(attempt * 2)
