@@ -72,7 +72,14 @@ class LLMGateway:
             attempt=attempt,
         )
         content = body["choices"][0]["message"]["content"]
-        return json.loads(content)
+        # Strip markdown code fences that some models (e.g. Gemini) wrap around JSON
+        stripped = content.strip()
+        if stripped.startswith("```"):
+            stripped = stripped.split("```", 2)[1]
+            if stripped.startswith("json"):
+                stripped = stripped[4:]
+            stripped = stripped.rsplit("```", 1)[0].strip()
+        return json.loads(stripped)
 
     def _request_completion(
         self,
@@ -84,17 +91,22 @@ class LLMGateway:
         temperature: float,
         attempt: int = 1,
     ) -> dict[str, Any]:
-        payload = json.dumps(
-            {
-                "model": model,
-                "temperature": temperature,
-                "response_format": {"type": "json_object"},
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-            }
-        ).encode("utf-8")
+        body: dict = {
+            "model": model,
+            "temperature": temperature,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        }
+        # json_object response_format is OpenAI-specific; omit it for other providers
+        # so Gemini and other models don't reject the request.
+        is_openai_model = model.startswith("openai/") or (
+            "openrouter" not in self._settings.openai_base_url
+        )
+        if is_openai_model:
+            body["response_format"] = {"type": "json_object"}
+        payload = json.dumps(body).encode("utf-8")
         req = request.Request(
             url=f"{self._settings.openai_base_url}/chat/completions",
             data=payload,
