@@ -52,7 +52,11 @@ class Settings:
 
 def load_settings() -> Settings:
     _load_dotenv(Path.cwd() / ".env")
-    base_dir = Path.cwd() / "artifacts" / "traces"
+    # Vercel (and other serverless platforms) only allow writes to /tmp
+    if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+        base_dir = Path("/tmp") / "hyperlocal_traces"
+    else:
+        base_dir = Path.cwd() / "artifacts" / "traces"
     openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
     openai_api_key = os.getenv("OPENAI_API_KEY") or openrouter_api_key
     llm_provider = os.getenv("HYPERLOCAL_LLM_PROVIDER")
