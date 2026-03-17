@@ -158,29 +158,56 @@ class Localizer:
         return self._build_mock_context(zip_code)
 
     async def _gather_from_serper(self, zip_code: str) -> LocalContext:
-        queries = {
-            "market": f"neighborhood demographics income profile {zip_code}",
-            "competition": f"retail businesses brands {zip_code} area",
-            "context": f"zip code {zip_code} neighborhood overview",
-        }
-        results = await asyncio.gather(
-            *[asyncio.to_thread(self._serper_search, query) for query in queries.values()]
-        )
         known = _KNOWN_LOCATIONS.get(zip_code)
-        location_name = self._extract_location_name(results) or (known[0] if known else f"ZIP {zip_code}")
-        market_tier = known[1] if known else _TIER_OPTIONS[int(hashlib.sha256(zip_code.encode()).hexdigest(), 16) % len(_TIER_OPTIONS)]
-        demographics = self._extract_summary(results[0], fallback="mixed demographics with moderate-to-high consumer spending")
-        competition = self._extract_summary(results[1], fallback="moderate competition with a mix of local and national brands")
-        sources = []
-        for payload in results:
-            sources.extend(self._extract_links(payload))
+
+        # For known markets, use curated data and fetch one Serper query for live sources only.
+        # This avoids using raw search snippets as demographic copy and keeps latency low.
+        if known:
+            location_name, market_tier, demographics, competition = known
+            try:
+                result = await asyncio.to_thread(
+                    self._serper_search,
+                    f"{location_name} neighborhood market",
+                )
+                sources = self._extract_links(result)[:6]
+            except Exception:
+                sources = []
+            return LocalContext(
+                zip_code=zip_code,
+                location_name=location_name,
+                market_tier=market_tier,
+                demographics=demographics,
+                competition=competition,
+                sources=sources,
+            )
+
+        # For unknown zip codes, run a single combined query.
+        seed = int(hashlib.sha256(zip_code.encode()).hexdigest(), 16)
+        try:
+            result = await asyncio.to_thread(
+                self._serper_search,
+                f"zip code {zip_code} neighborhood demographics retail",
+            )
+            location_name = self._extract_location_name([result]) or f"ZIP {zip_code}"
+            demographics = self._extract_summary(
+                result,
+                fallback=_DEMOGRAPHICS_OPTIONS[seed % len(_DEMOGRAPHICS_OPTIONS)],
+            )
+            sources = self._extract_links(result)[:6]
+        except Exception:
+            location_name = f"ZIP {zip_code}"
+            demographics = _DEMOGRAPHICS_OPTIONS[seed % len(_DEMOGRAPHICS_OPTIONS)]
+            sources = []
+
+        market_tier = _TIER_OPTIONS[seed % len(_TIER_OPTIONS)]
+        competition = _COMPETITION_OPTIONS[(seed // 13) % len(_COMPETITION_OPTIONS)]
         return LocalContext(
             zip_code=zip_code,
             location_name=location_name,
             market_tier=market_tier,
             demographics=demographics,
             competition=competition,
-            sources=sources[:6],
+            sources=sources,
         )
 
     def _serper_search(self, query: str) -> dict[str, Any]:
