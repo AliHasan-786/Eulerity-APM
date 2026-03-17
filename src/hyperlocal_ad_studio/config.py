@@ -71,7 +71,7 @@ def load_settings() -> Settings:
         # On Vercel: 1 retry max (2 attempts × 2 LLM calls = 4 total ≈ 40s, fits in 50s budget).
         # Locally: 2 retries (higher quality, no time pressure).
         max_rewrites=max(0, int(os.getenv("HYPERLOCAL_MAX_REWRITES", "1" if on_serverless else "2"))),
-        max_parallelism=max(1, int(os.getenv("HYPERLOCAL_MAX_PARALLELISM", "4" if on_serverless else "8"))),
+        max_parallelism=max(1, int(os.getenv("HYPERLOCAL_MAX_PARALLELISM", "2" if on_serverless else "8"))),
         variant_timeout_seconds=max(
             1.0, float(os.getenv("HYPERLOCAL_VARIANT_TIMEOUT_SECONDS", "60" if on_serverless else "12"))
         ),

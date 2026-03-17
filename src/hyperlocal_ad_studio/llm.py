@@ -227,7 +227,7 @@ class Copywriter:
         else:
             product_text = corporate_prompt
         topic_terms = significant_terms(product_text)
-        _verbs = {"promote", "launch", "highlight", "introduce", "drive", "increase", "boost", "maximize", "grow"}
+        _verbs = {"promote", "launch", "highlight", "introduce", "drive", "increase", "boost", "maximize", "grow", "market", "marketing", "advertise", "advertising", "sell", "selling"}
         filtered_topic_terms = [term for term in topic_terms if term.lower() not in _verbs]
         lead_topic = " ".join(filtered_topic_terms[:3] or topic_terms[:3]) or "our offer"
 
