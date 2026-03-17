@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Campaign Activation — Eulerity</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="nav-brand">
+        <div class="nav-logo">E</div>
+        <span class="nav-name">Eulerity</span>
+        <span class="nav-divider">|</span>
+        <span class="nav-product">Campaign Activation</span>
+      </div>
+      <div id="status-bar" class="status-bar"></div>
+    </nav>
+
+    <main class="page-main">
+      <div class="page-header">
+        <h1>Franchise Campaign<br>Activation</h1>
+        <p class="subhead">
+          One national brief. Every market in your network.
+          AI agents that localize advertising at scale — the same way Eulerity powers thousands of franchise locations.
+        </p>
+      </div>
+
+      <div class="about-strip">
+        <p>
+          <strong>European Wax Center</strong>, <strong>The UPS Store</strong>, and <strong>Sylvan Learning</strong>
+          each operate hundreds of franchise locations across wildly different markets.
+          Writing location-specific ad copy manually <strong>takes weeks</strong> — and brand managers still have to
+          <strong>review every single ad before it goes live</strong>.
+          This pipeline eliminates both: <em>AI generates the copy, and an automated brand compliance gate
+          scores and rewrites it — <strong>no human in the loop</strong>.</em>
+        </p>
+      </div>
+
+      <div class="pipeline-section">
+        <div class="pipeline-step">
+          <span class="pipeline-step-num">01</span>
+          <div>
+            <strong>Market Intelligence</strong>
+            <p>Resolves each zip code to market tier, demographics, and competitive density — the local signals that make copy feel written <strong>for that specific neighborhood</strong>.</p>
+          </div>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-step">
+          <span class="pipeline-step-num">02</span>
+          <div>
+            <strong>AI Copywriter</strong>
+            <p>Fuses the national brief with local context into a first draft. <strong>30 minutes of copywriting per location — done in milliseconds.</strong></p>
+          </div>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-step">
+          <span class="pipeline-step-num">03</span>
+          <div>
+            <strong>Automated Brand Gate</strong>
+            <p>Scores copy on 5 dimensions — brand safety, local relevance, tone, message retention, CTA strength. Fails trigger an automatic rewrite. <strong>No human reviewer needed.</strong></p>
+          </div>
+        </div>
+      </div>
+
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <p class="kicker">Campaign Brief</p>
+            <h2>Configure activation</h2>
+          </div>
+          <div class="preset-row" id="preset-row"></div>
+        </div>
+
+        <form id="generator-form" class="generator-form">
+          <label class="form-label">
+            <span class="form-label-text">National campaign objective</span>
+            <textarea
+              id="corporate-prompt"
+              name="corporate_prompt"
+              rows="3"
+              placeholder="Drive enrollment for our unlimited membership program"
+            ></textarea>
+          </label>
+
+          <div class="form-two-col">
+            <label class="form-label">
+              <span class="form-label-text">Franchise locations (zip codes)</span>
+              <textarea
+                id="zip-codes"
+                name="zip_codes"
+                rows="4"
+                placeholder="10001&#10;94103&#10;60611&#10;02108"
+              ></textarea>
+            </label>
+
+            <label class="form-label">
+              <span class="form-label-text">Brand guidelines</span>
+              <textarea
+                id="brand-guardrails"
+                name="brand_guardrails"
+                rows="4"
+                placeholder="Tone: confident and empowering. Avoid clinical language. Stay aspirational."
+              ></textarea>
+            </label>
+          </div>
+
+          <div class="form-footer">
+            <label class="form-label compact-field">
+              <span class="form-label-text">Max locations</span>
+              <input id="target-variants" name="target_variants" type="number" min="1" max="50" value="4" />
+            </label>
+            <button type="submit" id="generate-button" class="btn-primary">Activate Campaign</button>
+          </div>
+        </form>
+
+        <div class="runtime-notes" id="runtime-notes"></div>
+      </section>
+
+      <section class="card hidden" id="results-section">
+        <div class="results-header">
+          <div class="card-title-group">
+            <p class="kicker">Activation Results</p>
+            <h2>Localized campaign output</h2>
+          </div>
+          <p class="loading-indicator" id="loading-indicator"></p>
+        </div>
+
+        <p class="batch-summary" id="batch-summary"></p>
+        <div class="variant-grid" id="variant-grid"></div>
+      </section>
+    </main>
+
+    <dialog id="trace-modal" class="trace-modal">
+      <div class="trace-modal-inner">
+        <div class="trace-header">
+          <div class="card-title-group">
+            <p class="kicker">Agent Trace</p>
+            <h2 id="trace-title">Variant trace</h2>
+          </div>
+          <button id="close-trace" class="ghost-button" type="button">Close</button>
+        </div>
+        <div id="trace-events" class="trace-events"></div>
+      </div>
+    </dialog>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

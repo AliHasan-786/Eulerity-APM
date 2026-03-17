@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hyperlocal-ad-studio"
+version = "0.1.0"
+description = "Dependency-light prototype for Eulerity's HyperLocal Agentic Ad Studio"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Ali Hasan" }]
+dependencies = []
+
+[project.optional-dependencies]
+api = [
+  "fastapi>=0.115.0",
+  "pydantic>=2.7.0",
+  "uvicorn>=0.30.0",
+]
+langgraph = ["langgraph>=0.2.0"]
+integrations = [
+  "httpx>=0.27.0",
+  "langfuse>=2.0.0",
+]
+dev = ["pytest>=6.2.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,6 @@
+{
+  "corporate_prompt": "Promote our new iced latte",
+  "zip_codes": ["10001", "94103", "60611", "80202", "02108"],
+  "brand_guardrails": "Stay upbeat, concise, and premium without sounding generic.",
+  "target_variants": 5
+}
