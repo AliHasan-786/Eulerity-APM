@@ -21,7 +21,7 @@ from hyperlocal_ad_studio.service import HyperLocalAdStudio
 
 WEB_ROOT = Path(__file__).parent.parent / "src" / "hyperlocal_ad_studio" / "web"
 _ZIP_RE = re.compile(r"^\d{5}(-\d{4})?$")
-_MAX_TARGET_VARIANTS = 200
+_MAX_TARGET_VARIANTS = 3
 
 app = FastAPI(title="Eulerity Campaign Activation Studio")
 
@@ -43,21 +43,21 @@ def _sample_requests() -> list[dict]:
             "corporate_prompt": "Drive membership enrollments for our Smooth Skin Guarantee — unlimited wax services for a flat monthly rate",
             "zip_codes": ["33139", "10001", "90012", "77002"],
             "brand_guardrails": "Tone: confident, empowering, and polished. Avoid clinical language. Stay aspirational and conversion-focused.",
-            "target_variants": 4,
+            "target_variants": 3,
         },
         {
             "label": "The UPS Store",
             "corporate_prompt": "Drive in-store traffic for same-day shipping, printing, and mailbox services targeting small businesses and remote workers",
             "zip_codes": ["10036", "94103", "60611", "02108"],
             "brand_guardrails": "Lead with convenience and reliability. Keep copy clear, direct, and action-oriented. Avoid jargon.",
-            "target_variants": 4,
+            "target_variants": 3,
         },
         {
             "label": "Sylvan Learning",
             "corporate_prompt": "Drive enrollment for personalized K-12 tutoring programs ahead of the new school year",
             "zip_codes": ["11201", "80202", "78641", "94087"],
             "brand_guardrails": "Speak to parents. Warm, encouraging, and results-focused tone. Emphasize trust, personalization, and measurable outcomes.",
-            "target_variants": 4,
+            "target_variants": 3,
         },
         {
             "label": "Single Location",
