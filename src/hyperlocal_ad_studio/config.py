@@ -73,7 +73,7 @@ def load_settings() -> Settings:
         max_rewrites=max(0, int(os.getenv("HYPERLOCAL_MAX_REWRITES", "1" if on_serverless else "2"))),
         max_parallelism=max(1, int(os.getenv("HYPERLOCAL_MAX_PARALLELISM", "4" if on_serverless else "8"))),
         variant_timeout_seconds=max(
-            1.0, float(os.getenv("HYPERLOCAL_VARIANT_TIMEOUT_SECONDS", "50" if on_serverless else "12"))
+            1.0, float(os.getenv("HYPERLOCAL_VARIANT_TIMEOUT_SECONDS", "60" if on_serverless else "12"))
         ),
         llm_request_timeout_seconds=max(
             1.0, float(os.getenv("HYPERLOCAL_LLM_REQUEST_TIMEOUT_SECONDS", "20" if on_serverless else "6"))
