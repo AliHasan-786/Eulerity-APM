@@ -52,8 +52,10 @@ class Settings:
 
 def load_settings() -> Settings:
     _load_dotenv(Path.cwd() / ".env")
-    # Vercel (and other serverless platforms) only allow writes to /tmp
-    if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+    # Vercel and serverless platforms: /tmp is the only writable dir; also use
+    # tighter defaults so variants finish within Vercel Hobby's 10s hard limit.
+    on_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+    if on_serverless:
         base_dir = Path("/tmp") / "hyperlocal_traces"
     else:
         base_dir = Path.cwd() / "artifacts" / "traces"
@@ -64,18 +66,22 @@ def load_settings() -> Settings:
         llm_provider = "openrouter"
     return Settings(
         llm_provider=(llm_provider or "mock").strip().lower(),
-        critic_mode=os.getenv("HYPERLOCAL_CRITIC_MODE", "auto").strip().lower(),
+        # Default to heuristic critic on serverless — saves one LLM round-trip per
+        # variant and keeps total latency inside the 10s Vercel Hobby limit.
+        critic_mode=os.getenv(
+            "HYPERLOCAL_CRITIC_MODE", "heuristic" if on_serverless else "auto"
+        ).strip().lower(),
         workflow_runtime=os.getenv("HYPERLOCAL_WORKFLOW_RUNTIME", "internal").strip().lower(),
-        max_rewrites=max(0, int(os.getenv("HYPERLOCAL_MAX_REWRITES", "2"))),
-        max_parallelism=max(1, int(os.getenv("HYPERLOCAL_MAX_PARALLELISM", "8"))),
+        max_rewrites=max(0, int(os.getenv("HYPERLOCAL_MAX_REWRITES", "0" if on_serverless else "2"))),
+        max_parallelism=max(1, int(os.getenv("HYPERLOCAL_MAX_PARALLELISM", "4" if on_serverless else "8"))),
         variant_timeout_seconds=max(
-            1.0, float(os.getenv("HYPERLOCAL_VARIANT_TIMEOUT_SECONDS", "12"))
+            1.0, float(os.getenv("HYPERLOCAL_VARIANT_TIMEOUT_SECONDS", "9" if on_serverless else "12"))
         ),
         llm_request_timeout_seconds=max(
-            1.0, float(os.getenv("HYPERLOCAL_LLM_REQUEST_TIMEOUT_SECONDS", "6"))
+            1.0, float(os.getenv("HYPERLOCAL_LLM_REQUEST_TIMEOUT_SECONDS", "5" if on_serverless else "6"))
         ),
         context_request_timeout_seconds=max(
-            1.0, float(os.getenv("HYPERLOCAL_CONTEXT_REQUEST_TIMEOUT_SECONDS", "6"))
+            1.0, float(os.getenv("HYPERLOCAL_CONTEXT_REQUEST_TIMEOUT_SECONDS", "4" if on_serverless else "6"))
         ),
         max_context_chars=max(120, int(os.getenv("HYPERLOCAL_MAX_CONTEXT_CHARS", "600"))),
         trace_dir=base_dir,
