@@ -131,9 +131,12 @@ class LLMGateway:
                     temperature=temperature,
                 )
             is_free_model = model.endswith(":free")
-            if exc.code == 429 and attempt < 3 and not is_free_model:
+            if exc.code == 429 and attempt < 3:
                 retry_after = exc.headers.get("Retry-After") if exc.headers else None
-                wait_seconds = float(retry_after) if retry_after and retry_after.isdigit() else float(attempt * 2)
+                if retry_after and retry_after.isdigit():
+                    wait_seconds = float(retry_after)
+                else:
+                    wait_seconds = float(attempt * 10) if is_free_model else float(attempt * 2)
                 raise _RateLimitRetry(wait_seconds=wait_seconds, next_attempt=attempt + 1)
             try:
                 error_body = exc.read().decode("utf-8", errors="ignore").strip()
