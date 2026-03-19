@@ -117,7 +117,7 @@ class LLMGateway:
             with request.urlopen(req, timeout=self._settings.llm_request_timeout_seconds) as response:
                 return json.loads(response.read().decode("utf-8"))
         except error.HTTPError as exc:
-            _free_fallback = "google/gemini-2.0-flash-exp:free"
+            _free_fallback = "meta-llama/llama-3.3-70b-instruct:free"
             if (
                 exc.code == 402
                 and "openrouter.ai" in self._settings.openai_base_url

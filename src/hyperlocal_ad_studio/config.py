@@ -91,7 +91,7 @@ def load_settings() -> Settings:
         ).rstrip("/"),
         openai_model=os.getenv(
             "OPENAI_MODEL",
-            "google/gemini-2.0-flash-exp:free" if openrouter_api_key else "gpt-4.1-mini",
+            "meta-llama/llama-3.3-70b-instruct:free" if openrouter_api_key else "gpt-4.1-mini",
         ),
         app_name=os.getenv("HYPERLOCAL_APP_NAME", "HyperLocal Agentic Ad Studio"),
         app_url=os.getenv("HYPERLOCAL_APP_URL", "http://127.0.0.1:8000").strip() or None,
